@@ -75,6 +75,7 @@ class platform:
         self.platform = pygame.Rect(self.pl_x + 2, self.pl_y + 2, self.pl_width - 2, self.pl_height - 2)
         self.shadow = pygame.Rect(self.pl_x, self.pl_y, self.pl_width + 2, self.pl_height + 2)
         self.speed = 15
+        self.direction = 0
 
     def draw_platform(self):
         pygame.draw.rect(screen, platform_shadow, self.shadow)
@@ -85,9 +86,11 @@ class platform:
         if key[pygame.K_RIGHT] and self.shadow.right < screen_width - 5:
             self.platform = self.platform.move(self.speed, 0)
             self.shadow = self.shadow.move(self.speed, 0)
+            self.direction = 1
         if key[pygame.K_LEFT] and self.shadow.left > 5:
             self.platform = self.platform.move(-self.speed, 0)
             self.shadow = self.shadow.move(-self.speed, 0)
+            self.direction = -1
 
 
 class ball:
@@ -96,9 +99,11 @@ class ball:
         self.x = x - self.ball_radius
         self.y = y
         self.rect = pygame.Rect(self.x, self.y, self.ball_radius * 2, self.ball_radius * 2)
-        self.speed_x = 6
-        self.speed_y = -6
+        self.speed_x = 5
+        self.speed_y = -5
         self.speed = 15
+        self.speed_max = 8
+        self.game_over = 1
 
     def draw_ball(self):
         pygame.draw.circle(screen, platform_shadow, (self.rect.x + self.ball_radius, self.rect.y + self.ball_radius),
@@ -107,6 +112,9 @@ class ball:
                            self.ball_radius)
 
     def update_ball(self):
+
+        collision = 5
+
         if not ball_running:
             key = pygame.key.get_pressed()
             if key[pygame.K_RIGHT] and self.rect.right < screen_width - 5:
@@ -114,15 +122,27 @@ class ball:
             if key[pygame.K_LEFT] and self.rect.left > 5:
                 self.rect = self.rect.move(-self.speed, 0)
         else:
-            if self.rect.x + self.ball_radius * 2 >= screen_width:
-                self.speed_x = -self.speed_x
-            if self.rect.x <= 0:
-                self.speed_x = -self.speed_x
-            if self.rect.y <= 0:
-                self.speed_y = -self.speed_y
-            if self.rect.y + self.ball_radius * 2 >= screen_height:
-                self.speed_y = -self.speed_y
+            if self.rect.left < 0 or self.rect.right > screen_width:
+                self.speed_x *= -1
+            if self.rect.top < 0:
+                self.speed_y *= -1
+
+            if self.rect.bottom > screen_height:
+                self.game_over = -1
+
+            if self.rect.colliderect(platform.platform):
+                if abs(self.rect.bottom - platform.platform.top) < collision and self.speed_y > 0:
+                    self.speed_y *= -1
+                    self.speed_x += platform.direction
+                    if self.speed_x > self.speed_max:
+                        self.speed_x = self.speed_max
+                    elif self.speed_x < 0 and self.speed_x < -self.speed_max:
+                        self.speed_x = -self.speed_max
+                else:
+                    self.speed_x *= -1
             self.rect = self.rect.move(self.speed_x, self.speed_y)
+
+            return self.game_over
 
 
 wall = wall()
@@ -132,7 +152,7 @@ platform = platform()
 
 ball = ball(platform.pl_x + (platform.pl_width // 2), platform.pl_y - platform.pl_height)
 
-FPS = 30
+FPS = 60
 clock = pygame.time.Clock()
 
 ball_running = False
