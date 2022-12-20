@@ -96,14 +96,33 @@ class ball:
         self.x = x - self.ball_radius
         self.y = y
         self.rect = pygame.Rect(self.x, self.y, self.ball_radius * 2, self.ball_radius * 2)
-        self.speed_x = 4
-        self.speed_y = -4
+        self.speed_x = 6
+        self.speed_y = -6
+        self.speed = 15
 
     def draw_ball(self):
         pygame.draw.circle(screen, platform_shadow, (self.rect.x + self.ball_radius, self.rect.y + self.ball_radius),
                            self.ball_radius + 2)
         pygame.draw.circle(screen, platform_color, (self.rect.x + self.ball_radius, self.rect.y + self.ball_radius),
                            self.ball_radius)
+
+    def update_ball(self):
+        if not ball_running:
+            key = pygame.key.get_pressed()
+            if key[pygame.K_RIGHT] and self.rect.right < screen_width - 5:
+                self.rect = self.rect.move(self.speed, 0)
+            if key[pygame.K_LEFT] and self.rect.left > 5:
+                self.rect = self.rect.move(-self.speed, 0)
+        else:
+            if self.rect.x + self.ball_radius * 2 >= screen_width:
+                self.speed_x = -self.speed_x
+            if self.rect.x <= 0:
+                self.speed_x = -self.speed_x
+            if self.rect.y <= 0:
+                self.speed_y = -self.speed_y
+            if self.rect.y + self.ball_radius * 2 >= screen_height:
+                self.speed_y = -self.speed_y
+            self.rect = self.rect.move(self.speed_x, self.speed_y)
 
 
 wall = wall()
@@ -126,7 +145,11 @@ while run:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+            if not ball_running:
+                ball_running = True
     platform.update_platform()
+    ball.update_ball()
     clock.tick(FPS)
     pygame.display.update()
 
