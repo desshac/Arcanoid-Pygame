@@ -14,6 +14,7 @@ block_red = ("#BBC6C8")
 block_green = ("#5BA199")
 block_blue = ("#469597")
 platform_color = ("#E5E3E4")
+ball_color = (0, 0, 0)
 # shadow color
 red_shadow = ("#839295")
 green_shadow = ("#4A847E")
@@ -69,10 +70,10 @@ class platform:
     def __init__(self):
         self.pl_width = 200
         self.pl_height = 30
-        pl_x = screen_width // 2 - self.pl_width // 2
-        pl_y = screen_height - 60
-        self.platform = pygame.Rect(pl_x + 2, pl_y + 2, self.pl_width - 2, self.pl_height - 2)
-        self.shadow = pygame.Rect(pl_x, pl_y, self.pl_width + 2, self.pl_height + 2)
+        self.pl_x = screen_width // 2 - self.pl_width // 2
+        self.pl_y = screen_height - 60
+        self.platform = pygame.Rect(self.pl_x + 2, self.pl_y + 2, self.pl_width - 2, self.pl_height - 2)
+        self.shadow = pygame.Rect(self.pl_x, self.pl_y, self.pl_width + 2, self.pl_height + 2)
         self.speed = 15
 
     def draw_platform(self):
@@ -89,28 +90,42 @@ class platform:
             self.shadow = self.shadow.move(-self.speed, 0)
 
 
+class ball:
+    def __init__(self, x, y):
+        self.ball_radius = 15
+        self.x = x - self.ball_radius
+        self.y = y
+        self.rect = pygame.Rect(self.x, self.y, self.ball_radius * 2, self.ball_radius * 2)
+        self.speed_x = 4
+        self.speed_y = -4
+
+    def draw_ball(self):
+        pygame.draw.circle(screen, platform_shadow, (self.rect.x + self.ball_radius, self.rect.y + self.ball_radius),
+                           self.ball_radius + 2)
+        pygame.draw.circle(screen, platform_color, (self.rect.x + self.ball_radius, self.rect.y + self.ball_radius),
+                           self.ball_radius)
+
 
 wall = wall()
 wall.create_wall()
 
 platform = platform()
 
+ball = ball(platform.pl_x + (platform.pl_width // 2), platform.pl_y - platform.pl_height)
+
 FPS = 30
 clock = pygame.time.Clock()
 
+ball_running = False
 run = True
 while run:
     screen.fill(bg)
     wall.draw_wall()
     platform.draw_platform()
+    ball.draw_ball()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
-        '''if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RIGHT:
-                platform.update_platform('right')
-            if event.key == pygame.K_LEFT:
-                platform.update_platform('left')'''
     platform.update_platform()
     clock.tick(FPS)
     pygame.display.update()
