@@ -1,4 +1,5 @@
 import pygame
+import sys
 
 pygame.init()
 
@@ -25,6 +26,11 @@ cols = 6
 rows = 6
 
 
+def terminate():
+    pygame.quit()
+    sys.exit()
+
+
 class wall():
     def __init__(self):
         self.width = screen_width // cols
@@ -38,7 +44,7 @@ class wall():
             for col in range(cols):
                 block_x = col * self.width
                 block_y = row * self.height
-                rect = pygame.Rect(block_x + 2, block_y + 2, self.width - 4, self.height - 4)
+                rect = pygame.Rect(block_x + 4, block_y + 4, self.width - 6, self.height - 6)
                 shadow = pygame.Rect(block_x + 2, block_y + 2, self.width - 2, self.height - 2)
                 if row < 2:
                     strength = 3
@@ -103,7 +109,7 @@ class ball:
         self.speed_y = -5
         self.speed = 15
         self.speed_max = 8
-        self.game_over = 1
+        self.game_over = 0
 
     def draw_ball(self):
         pygame.draw.circle(screen, platform_shadow, (self.rect.x + self.ball_radius, self.rect.y + self.ball_radius),
@@ -114,6 +120,29 @@ class ball:
     def update_ball(self):
 
         collision = 5
+
+        wall_destroyed = 0
+        row_count = 0
+        for row in wall.blocks:
+            item_count = 0
+            for item in row:
+                if self.rect.colliderect(item[0]):
+                    if abs(self.rect.bottom - item[0].top) < collision and self.speed_y > 0:
+                        self.speed_y *= -1
+                    if abs(self.rect.top - item[0].bottom) < collision and self.speed_y < 0:
+                        self.speed_y *= -1
+                    if abs(self.rect.right - item[0].left) < collision and self.speed_x > 0:
+                        self.speed_x *= -1
+                    if abs(self.rect.left - item[0].right) < collision and self.speed_x < 0:
+                        self.speed_x *= -1
+
+                    if wall.blocks[row_count][item_count][2] > 1:
+                        wall.blocks[row_count][item_count][2] -= 1
+                    else:
+                        wall.blocks[row_count][item_count][0] = pygame.Rect(0, 0, 0, 0)
+                        wall.blocks[row_count][item_count][1] = pygame.Rect(0, 0, 0, 0)
+                item_count += 1
+            row_count += 1
 
         if not ball_running:
             key = pygame.key.get_pressed()
@@ -169,7 +198,13 @@ while run:
             if not ball_running:
                 ball_running = True
     platform.update_platform()
-    ball.update_ball()
+    game_over = ball.update_ball()
+    if game_over == -1:
+        print('game_over')
+        terminate()
+    elif game_over == 1:
+        print('you win')
+        terminate()
     clock.tick(FPS)
     pygame.display.update()
 
