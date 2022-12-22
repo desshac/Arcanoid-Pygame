@@ -15,7 +15,6 @@ block_red = ("#BBC6C8")
 block_green = ("#5BA199")
 block_blue = ("#469597")
 platform_color = ("#E5E3E4")
-ball_color = (0, 0, 0)
 # shadow color
 red_shadow = ("#839295")
 green_shadow = ("#4A847E")
@@ -31,26 +30,35 @@ def terminate():
     sys.exit()
 
 
+def load_level(filename):
+    filename = "data/" + filename
+    with open(filename, 'r') as mapFile:
+        level_map = [line.strip() for line in mapFile]
+    return level_map
+
+
 class wall():
-    def __init__(self):
+    def __init__(self, level_map):
         self.width = screen_width // cols
         self.height = 50
+        self.map = level_map
 
     def create_wall(self):
         self.blocks = []
-        block = []
-        for row in range(rows):
+        for row in range(len(self.map)):
             block_row = []
-            for col in range(cols):
+            strength = 1
+            for col in range(len(self.map[row])):
+                col_n = int(self.map[row][col])
                 block_x = col * self.width
                 block_y = row * self.height
                 rect = pygame.Rect(block_x + 4, block_y + 4, self.width - 6, self.height - 6)
                 shadow = pygame.Rect(block_x + 2, block_y + 2, self.width - 2, self.height - 2)
-                if row < 2:
+                if col_n == 3:
                     strength = 3
-                elif row < 4:
+                elif col_n == 2:
                     strength = 2
-                elif row < 6:
+                elif col_n == 1:
                     strength = 1
                 block = [rect, shadow, strength]
                 block_row.append(block)
@@ -174,7 +182,9 @@ class ball:
             return self.game_over
 
 
-wall = wall()
+level_map = load_level('lvl1.txt')
+
+wall = wall(level_map)
 wall.create_wall()
 
 platform = platform()
