@@ -9,6 +9,7 @@ screen_height = 600
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Arcanoid')
 
+startScreen_color = ("#DDBEAA")
 bg = ("#DDBEAA")
 # blocks color
 block_red = ("#BBC6C8")
@@ -24,16 +25,56 @@ platform_shadow = ("#C1C1C1")
 cols = 6
 rows = 6
 
+FPS = 60
+clock = pygame.time.Clock()
+
 
 def terminate():
     pygame.quit()
     sys.exit()
 
 
+def start_screen():
+    intro_text = ["Arcanoid", "Начать игру"]
+
+    screen.fill(startScreen_color)
+    font = pygame.font.Font(None, 50)
+    text_coord = 50
+    text_x = screen_width // 2
+    button = None
+    for line in intro_text:
+        string_rendered = font.render(line, 1, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = text_x - (intro_rect.width // 2)
+        font = pygame.font.Font(None, 40)
+        text_coord += 100
+        screen.blit(string_rendered, intro_rect)
+        if intro_text.index(line) == 1:
+            button = intro_rect
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if button.right >= event.pos[0] >= button.x:
+                    if button.bottom >= event.pos[1] >= button.y:
+                        return
+
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
 def load_level(filename):
+    global cols, rows
     filename = "data/" + filename
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
+
+    cols = max(map(len, level_map))
+    rows = len(level_map)
     return level_map
 
 
@@ -49,7 +90,10 @@ class wall():
             block_row = []
             strength = 1
             for col in range(len(self.map[row])):
-                col_n = int(self.map[row][col])
+                try:
+                    col_n = int(self.map[row][col])
+                except ValueError:
+                    col_n = 0
                 block_x = col * self.width
                 block_y = row * self.height
                 rect = pygame.Rect(block_x + 4, block_y + 4, self.width - 6, self.height - 6)
@@ -60,6 +104,9 @@ class wall():
                     strength = 2
                 elif col_n == 1:
                     strength = 1
+                elif col_n == 0:
+                    rect = pygame.Rect(0, 0, 0, 0)
+                    shadow = pygame.Rect(0, 0, 0, 0)
                 block = [rect, shadow, strength]
                 block_row.append(block)
             self.blocks.append(block_row)
@@ -182,6 +229,8 @@ class ball:
             return self.game_over
 
 
+start_screen()
+
 level_map = load_level('lvl1.txt')
 
 wall = wall(level_map)
@@ -190,9 +239,6 @@ wall.create_wall()
 platform = platform()
 
 ball = ball(platform.pl_x + (platform.pl_width // 2), platform.pl_y - platform.pl_height)
-
-FPS = 60
-clock = pygame.time.Clock()
 
 ball_running = False
 run = True
