@@ -1,7 +1,8 @@
 import sys
+
 import pygame
 
-#settings
+# settings
 pygame.init()
 
 screen_width = 600
@@ -26,8 +27,12 @@ platform_shadow = ("#C1C1C1")
 cols = 6
 rows = 6
 
+map_count = 0
+
 FPS = 60
 clock = pygame.time.Clock()
+
+game_over = None
 
 
 def terminate():
@@ -68,25 +73,66 @@ def start_screen():
         clock.tick(FPS)
 
 
-def load_level(filename):
-    global cols, rows
-    filename = "data/" + filename
-    with open(filename, 'r') as mapFile:
-        level_map = [line.strip() for line in mapFile]
+def win_screen():
+    intro_text = ["Вы выиграли!"]
 
-    cols = max(map(len, level_map))
-    rows = len(level_map)
-    return level_map
+    screen.fill(startScreen_color)
+    font = pygame.font.Font(None, 50)
+    text_coord = 50
+    text_x = screen_width // 2
+    button = None
+    for line in intro_text:
+        string_rendered = font.render(line, 1, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = text_x - (intro_rect.width // 2)
+        font = pygame.font.Font(None, 40)
+        text_coord += 100
+        screen.blit(string_rendered, intro_rect)
+        if intro_text.index(line) == 1:
+            button = intro_rect
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+def load_level(*maps):
+    global cols, rows, map_count
+    level_map_list = []
+    for filename in maps:
+        filename = "data/" + filename
+        with open(filename, 'r') as mapFile:
+            level_map = [line.strip() for line in mapFile]
+
+        cols = max(map(len, level_map))
+        rows = len(level_map)
+        level_map_list.append((level_map, cols, rows))
+    map_count = len(level_map_list) - 1
+    return level_map_list
 
 
 class wall():
-    def __init__(self, level_map):
-        self.width = screen_width // cols
-        self.height = 50
-        self.map = level_map
+    def __init__(self):
+        self.map_number = 0
 
-    def create_wall(self):
+    def create_wall(self, level_map_list):
+        self.cols = level_map_list[self.map_number][1]
+        self.rows = level_map_list[self.map_number][2]
+        self.width = screen_width // self.cols
+        self.height = 50
+        self.map = level_map_list[self.map_number][0]
         self.blocks = []
+        self.blocks_count = 0
+        for row in self.map:
+            for col in row:
+                if col in ('1', '2', '3'):
+                    self.blocks_count += 1
         for row in range(len(self.map)):
             block_row = []
             strength = 1
@@ -157,12 +203,12 @@ class platform:
 
 class ball:
     def __init__(self, x, y):
-        self.ball_radius = 15
+        self.ball_radius = 12
         self.x = x - self.ball_radius
         self.y = y
         self.rect = pygame.Rect(self.x, self.y, self.ball_radius * 2, self.ball_radius * 2)
-        self.speed_x = 5
-        self.speed_y = -5
+        self.speed_x = 6
+        self.speed_y = -6
         self.speed = 15
         self.speed_max = 8
         self.game_over = 0
@@ -174,10 +220,7 @@ class ball:
                            self.ball_radius)
 
     def update_ball(self):
-
-        collision = 5
-
-        wall_destroyed = 0
+        collision = 7
         row_count = 0
         for row in wall.blocks:
             item_count = 0
@@ -197,11 +240,17 @@ class ball:
                     else:
                         wall.blocks[row_count][item_count][0] = pygame.Rect(0, 0, 0, 0)
                         wall.blocks[row_count][item_count][1] = pygame.Rect(0, 0, 0, 0)
+                        wall.blocks_count -= 1
+
                 item_count += 1
             row_count += 1
 
+        font = pygame.font.Font(None, 40)
+        text = 'Нажмите пробел чтобы начать'
         if not ball_running:
+            font = font.render(text, 1, pygame.Color('black'))
             key = pygame.key.get_pressed()
+            screen.blit(font, (100, 100))
             if key[pygame.K_RIGHT] and self.rect.right < screen_width - 5:
                 self.rect = self.rect.move(self.speed, 0)
             if key[pygame.K_LEFT] and self.rect.left > 5:
@@ -227,15 +276,23 @@ class ball:
                     self.speed_x *= -1
             self.rect = self.rect.move(self.speed_x, self.speed_y)
 
+            if wall.blocks_count == 0:
+                self.game_over = 1
+                wall.map_number += 1
+                self.rect.x = self.x
+                self.rect.y = self.y
+                if self.speed_y > 0:
+                    self.speed_y *= -1
+
             return self.game_over
 
 
 start_screen()
 
-level_map = load_level('lvl1.txt')
+level_map_list = load_level('lvl1.txt')
 
-wall = wall(level_map)
-wall.create_wall()
+wall = wall()
+wall.create_wall(level_map_list)
 
 platform = platform()
 
@@ -256,13 +313,22 @@ while run:
                 ball_running = True
     platform.update_platform()
     game_over = ball.update_ball()
+
     if game_over == -1:
         print('game_over')
         terminate()
     elif game_over == 1:
-        print('you win')
-        terminate()
+        print(map_count)
+        if map_count == 0:
+            game_over = 2
+        else:
+            wall.create_wall(level_map_list)
+            ball.game_over = 0
+            map_count -= 1
+    elif game_over == 2:
+        run = False
+
     clock.tick(FPS)
     pygame.display.update()
 
-pygame.quit()
+win_screen()
