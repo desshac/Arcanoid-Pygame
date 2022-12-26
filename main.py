@@ -48,6 +48,7 @@ def start_screen():
     text_coord = 50
     text_x = screen_width // 2
     button = None
+    button2 = None
     for line in intro_text:
         string_rendered = font.render(line, 1, pygame.Color('black'))
         intro_rect = string_rendered.get_rect()
@@ -74,13 +75,13 @@ def start_screen():
 
 
 def win_screen():
-    intro_text = ["Вы выиграли!"]
+    intro_text = ["Вы выиграли!", "Выход"]
 
     screen.fill(startScreen_color)
     font = pygame.font.Font(None, 50)
     text_coord = 50
     text_x = screen_width // 2
-    button = None
+    button, button2 = None, None
     for line in intro_text:
         string_rendered = font.render(line, 1, pygame.Color('black'))
         intro_rect = string_rendered.get_rect()
@@ -92,11 +93,20 @@ def win_screen():
         screen.blit(string_rendered, intro_rect)
         if intro_text.index(line) == 1:
             button = intro_rect
+        elif intro_text.index(line) == 2:
+            button2 = intro_rect
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                '''if button.right >= event.pos[0] >= button.x:
+                    if button.bottom >= event.pos[1] >= button.y:
+                        return 'restart'''
+                if button.right >= event.pos[0] >= button.x:
+                    if button.bottom >= event.pos[1] >= button.y:
+                        return 'exit'
 
         pygame.display.flip()
         clock.tick(FPS)
@@ -277,58 +287,69 @@ class ball:
             self.rect = self.rect.move(self.speed_x, self.speed_y)
 
             if wall.blocks_count == 0:
-                self.game_over = 1
-                wall.map_number += 1
-                self.rect.x = self.x
-                self.rect.y = self.y
-                if self.speed_y > 0:
-                    self.speed_y *= -1
+                if map_count != 0:
+                    self.game_over = 1
+                    wall.map_number += 1
+                    self.rect.x = self.x
+                    self.rect.y = self.y
+                    if self.speed_y > 0:
+                        self.speed_y *= -1
+                else:
+                    self.game_over = 2
 
             return self.game_over
 
 
-start_screen()
-
-level_map_list = load_level('lvl1.txt')
+level_map_list = load_level('lvl1.txt', 'lvl2.txt', 'lvl3.txt')
 
 wall = wall()
-wall.create_wall(level_map_list)
-
 platform = platform()
 
 ball = ball(platform.pl_x + (platform.pl_width // 2), platform.pl_y - platform.pl_height)
 
-ball_running = False
-run = True
-while run:
-    screen.fill(bg)
-    wall.draw_wall()
-    platform.draw_platform()
-    ball.draw_ball()
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-            if not ball_running:
-                ball_running = True
-    platform.update_platform()
-    game_over = ball.update_ball()
+while True:
+    start_screen()
+    map_count = len(level_map_list) - 1
+    wall.create_wall(level_map_list)
 
-    if game_over == -1:
-        print('game_over')
-        terminate()
-    elif game_over == 1:
-        print(map_count)
-        if map_count == 0:
-            game_over = 2
-        else:
+    game_over = 0
+
+    ball_running = False
+    run = True
+    while run:
+        screen.fill(bg)
+        wall.draw_wall()
+        platform.draw_platform()
+        ball.draw_ball()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                if not ball_running:
+                    ball_running = True
+        platform.update_platform()
+        game_over = ball.update_ball()
+
+        if game_over == -1:
+            print('game_over')
+            terminate()
+        elif game_over == 1:
             wall.create_wall(level_map_list)
             ball.game_over = 0
             map_count -= 1
-    elif game_over == 2:
-        run = False
+        elif game_over == 2:
+            run = False
 
-    clock.tick(FPS)
-    pygame.display.update()
+        clock.tick(FPS)
+        pygame.display.update()
 
-win_screen()
+    ans = win_screen()
+    if ans == 'exit':
+        terminate()
+        break
+    elif ans == 'restart':
+        ball.rect.x = ball.x
+        ball.rect.y = ball.y
+        if ball.speed_y > 0:
+            ball.speed_y *= -1
+        ball.game_over = 0
