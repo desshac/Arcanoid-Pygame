@@ -42,13 +42,11 @@ def terminate():
 
 def start_screen():
     intro_text = ["Arcanoid", "Начать игру"]
-
     screen.fill(startScreen_color)
     font = pygame.font.Font(None, 50)
     text_coord = 50
     text_x = screen_width // 2
     button = None
-    button2 = None
     for line in intro_text:
         string_rendered = font.render(line, 1, pygame.Color('black'))
         intro_rect = string_rendered.get_rect()
@@ -74,8 +72,11 @@ def start_screen():
         clock.tick(FPS)
 
 
-def win_screen():
-    intro_text = ["Вы выиграли!", "Выход"]
+def end_screen():
+    if game_over == 2:
+        intro_text = ["Вы выиграли!", "Выход в главное меню", "Выход"]
+    elif game_over == -1:
+        intro_text = ["Вы проиграли!", "Выход в главное меню", "Выход"]
 
     screen.fill(startScreen_color)
     font = pygame.font.Font(None, 50)
@@ -101,11 +102,11 @@ def win_screen():
             if event.type == pygame.QUIT:
                 terminate()
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                '''if button.right >= event.pos[0] >= button.x:
-                    if button.bottom >= event.pos[1] >= button.y:
-                        return 'restart'''
                 if button.right >= event.pos[0] >= button.x:
                     if button.bottom >= event.pos[1] >= button.y:
+                        return 'restart'
+                if button2.right >= event.pos[0] >= button2.x:
+                    if button2.bottom >= event.pos[1] >= button2.y:
                         return 'exit'
 
         pygame.display.flip()
@@ -300,7 +301,7 @@ class ball:
             return self.game_over
 
 
-level_map_list = load_level('lvl1.txt', 'lvl2.txt', 'lvl3.txt')
+level_map_list = load_level('lvl1.txt', 'lvl2.txt')
 
 wall = wall()
 platform = platform()
@@ -330,20 +331,17 @@ while True:
         platform.update_platform()
         game_over = ball.update_ball()
 
-        if game_over == -1:
-            print('game_over')
-            terminate()
-        elif game_over == 1:
+        if game_over == 1:
             wall.create_wall(level_map_list)
             ball.game_over = 0
             map_count -= 1
-        elif game_over == 2:
+        elif game_over == 2 or game_over == -1:
             run = False
 
         clock.tick(FPS)
         pygame.display.update()
 
-    ans = win_screen()
+    ans = end_screen()
     if ans == 'exit':
         terminate()
         break
@@ -353,3 +351,7 @@ while True:
         if ball.speed_y > 0:
             ball.speed_y *= -1
         ball.game_over = 0
+        wall.map_number = 0
+        platform.platform = pygame.Rect(platform.pl_x + 2, platform.pl_y + 2, platform.pl_width - 2,
+                                        platform.pl_height - 2)
+        platform.shadow = pygame.Rect(platform.pl_x, platform.pl_y, platform.pl_width + 2, platform.pl_height + 2)
