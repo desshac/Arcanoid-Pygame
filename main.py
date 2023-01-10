@@ -28,6 +28,7 @@ cols = 6
 rows = 6
 
 map_count = 0
+count = 0
 
 FPS = 60
 clock = pygame.time.Clock()
@@ -74,9 +75,9 @@ def start_screen():
 
 def end_screen():
     if game_over == 2:
-        intro_text = ["Вы выиграли!", "Выход в главное меню", "Выход"]
+        intro_text = ["Вы выиграли!", f"Ваш счет {count}", "Выход в главное меню", "Выход"]
     elif game_over == -1:
-        intro_text = ["Вы проиграли!", "Выход в главное меню", "Выход"]
+        intro_text = ["Вы проиграли!", f"Ваш счет {count}", "Выход в главное меню", "Выход"]
 
     screen.fill(startScreen_color)
     font = pygame.font.Font(None, 50)
@@ -92,9 +93,9 @@ def end_screen():
         font = pygame.font.Font(None, 40)
         text_coord += 100
         screen.blit(string_rendered, intro_rect)
-        if intro_text.index(line) == 1:
+        if intro_text.index(line) == 2:
             button = intro_rect
-        elif intro_text.index(line) == 2:
+        elif intro_text.index(line) == 3:
             button2 = intro_rect
 
     while True:
@@ -223,6 +224,7 @@ class ball:
         self.speed = 15
         self.speed_max = 8
         self.game_over = 0
+        self.count = 0
 
     def draw_ball(self):
         pygame.draw.circle(screen, platform_shadow, (self.rect.x + self.ball_radius, self.rect.y + self.ball_radius),
@@ -231,6 +233,7 @@ class ball:
                            self.ball_radius)
 
     def update_ball(self):
+        global count
         collision = 7
         row_count = 0
         for row in wall.blocks:
@@ -252,6 +255,8 @@ class ball:
                         wall.blocks[row_count][item_count][0] = pygame.Rect(0, 0, 0, 0)
                         wall.blocks[row_count][item_count][1] = pygame.Rect(0, 0, 0, 0)
                         wall.blocks_count -= 1
+                        count += item[2]
+                    print(count)
 
                 item_count += 1
             row_count += 1
@@ -317,11 +322,15 @@ while True:
 
     ball_running = False
     run = True
+    counter_font = pygame.font.Font(None, 30)
     while run:
+        text = f'Ваш счет: {count}'
+        counter = counter_font.render(text, 1, pygame.Color('black'))
         screen.fill(bg)
         wall.draw_wall()
         platform.draw_platform()
         ball.draw_ball()
+        screen.blit(counter, (40, screen_height - 25))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -340,18 +349,19 @@ while True:
 
         clock.tick(FPS)
         pygame.display.update()
-
-    ans = end_screen()
-    if ans == 'exit':
+    try:
+        ans = end_screen()
+        if ans == 'exit':
+            terminate()
+        elif ans == 'restart':
+            ball.rect.x = ball.x
+            ball.rect.y = ball.y
+            if ball.speed_y > 0:
+                ball.speed_y *= -1
+            ball.game_over = 0
+            wall.map_number = 0
+            platform.platform = pygame.Rect(platform.pl_x + 2, platform.pl_y + 2, platform.pl_width - 2,
+                                            platform.pl_height - 2)
+            platform.shadow = pygame.Rect(platform.pl_x, platform.pl_y, platform.pl_width + 2, platform.pl_height + 2)
+    except UnboundLocalError:
         terminate()
-        break
-    elif ans == 'restart':
-        ball.rect.x = ball.x
-        ball.rect.y = ball.y
-        if ball.speed_y > 0:
-            ball.speed_y *= -1
-        ball.game_over = 0
-        wall.map_number = 0
-        platform.platform = pygame.Rect(platform.pl_x + 2, platform.pl_y + 2, platform.pl_width - 2,
-                                        platform.pl_height - 2)
-        platform.shadow = pygame.Rect(platform.pl_x, platform.pl_y, platform.pl_width + 2, platform.pl_height + 2)
