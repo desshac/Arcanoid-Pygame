@@ -1,24 +1,26 @@
 import os
 import sys
-
 import pygame
 
-# settings
 pygame.init()
 
+# settings
 screen_width = 600
 screen_height = 600
 
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Arcanoid')
+
 # fon color
 startScreen_color = ("#DDBEAA")
 bg = ("#1950A0")
+
 # blocks color
 block_red = ("#F63232")
 block_green = ("#58B822")
 block_blue = ("#2681EB")
 platform_color = ("#E5E3E4")
+
 # shadow color
 red_shadow = ("#BC3838")
 green_shadow = ("#3E8317")
@@ -52,12 +54,17 @@ def load_image(name):
 
 
 def start_screen():
-    intro_text = ["Arcanoid Pygame", "Начать игру", 'Выход']
+    screen.blit(bgImage, (0, 0))
+    platform.draw_platform()
+    ball.draw_ball()
+    intro_text = ["Arcanoid Pygame", "Начать игру", "Выбор уровня", 'Выход']
     font = pygame.font.Font(None, 60)
     text_coord = 80
     text_x = screen_width // 2
     button = None
     button2 = None
+    button3 = None
+    answer = ''
     for line in intro_text:
         string_rendered = font.render(line, 1, pygame.Color('white'))
         intro_rect = string_rendered.get_rect()
@@ -70,6 +77,8 @@ def start_screen():
             button = intro_rect
         elif intro_text.index(line) == 2:
             button2 = intro_rect
+        elif intro_text.index(line) == 3:
+            button3 = intro_rect
 
     while True:
         for event in pygame.event.get():
@@ -78,10 +87,85 @@ def start_screen():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if button.right >= event.pos[0] >= button.x:
                     if button.bottom >= event.pos[1] >= button.y:
-                        return
+                        return ''
                 if button2.right >= event.pos[0] >= button2.x:
                     if button2.bottom >= event.pos[1] >= button2.y:
+                        answer = level_select()
+                if button3.right >= event.pos[0] >= button3.x:
+                    if button3.bottom >= event.pos[1] >= button3.y:
                         terminate()
+
+        if answer == 'back' or str(answer).isdigit():
+            return answer
+
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+def level_select():
+    screen.blit(bgImage, (0, 0))
+    platform.draw_platform()
+    ball.draw_ball()
+    font = pygame.font.Font(None, 50)
+    intro = font.render('Выбор уровня', 1, pygame.Color('white'))
+    intro_rect = intro.get_rect()
+    font_x = screen_width // 2 - (intro_rect.width / 2)
+    font_y = 150
+    screen.blit(intro, (font_x, font_y))
+
+    font = pygame.font.Font(None, 40)
+    text = font.render('Доступные уровни:', 1, pygame.Color('white'))
+    text_rect = text.get_rect()
+    font_x -= 100
+    font_y += 60
+    screen.blit(text, (font_x, font_y))
+    font_x += text_rect.width + 10
+
+    text = font.render('Назад', 1, pygame.Color('white'))
+    text_rect = text.get_rect()
+    text_rect.top = screen_height - 150
+    text_rect.x = (screen_width // 2) - (text_rect.width // 2)
+    print(text_rect)
+    screen.blit(text, (screen_width // 2 - (text_rect.width // 2), screen_height - 150))
+    back_button = text_rect
+
+    level_numbers = []
+    for level in level_name:
+        level_number = ''
+        for i in level:
+            if i.isdigit():
+                level_number += i
+        if level != level_name[-1]:
+            level_number += ', '
+        level_numbers.append(level_number)
+    level_numbers = level_numbers
+
+    rect_list = []
+    for number in level_numbers:
+        number = font.render(number, 1, pygame.Color('red'))
+        number_rect = number.get_rect()
+        number_rect.top = font_y
+        number_rect.x = font_x
+        if font_x + number_rect.width + 10 > screen_width:
+            font_y += number_rect.height + 10
+            font_x = text_rect.width
+        screen.blit(number, (font_x, font_y))
+        font_x += number_rect.width + 10
+        rect_list.append(number_rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if back_button.right >= event.pos[0] >= back_button.x:
+                    if back_button.bottom >= event.pos[1] >= back_button.y:
+                        return 'back'
+                for button in rect_list:
+                    if button.right >= event.pos[0] >= button.x:
+                        if button.bottom >= event.pos[1] >= button.y:
+                            number = rect_list.index(button) + 1
+                            return number
 
         pygame.display.flip()
         clock.tick(FPS)
@@ -127,7 +211,7 @@ def end_screen():
         clock.tick(FPS)
 
 
-def load_level(*maps):
+def load_level(maps):
     global cols, rows, map_count
     level_map_list = []
     for filename in maps:
@@ -142,7 +226,7 @@ def load_level(*maps):
     return level_map_list
 
 
-class wall():
+class Wall:
     def __init__(self):
         self.map_number = 0
 
@@ -199,9 +283,10 @@ class wall():
                 pygame.draw.rect(screen, block_col, block[0])
 
 
-class platform:
+# platform class
+class Platform:
     def __init__(self):
-        self.pl_width = 150
+        self.pl_width = screen_width / 2 - 150
         self.pl_height = 30
         self.pl_x = screen_width // 2 - self.pl_width // 2
         self.pl_y = screen_height - 60
@@ -226,14 +311,15 @@ class platform:
             self.direction = -1
 
 
-class ball:
+# ball class
+class Ball:
     def __init__(self, x, y):
         self.ball_radius = 12
         self.x = x - self.ball_radius
         self.y = y
         self.rect = pygame.Rect(self.x, self.y, self.ball_radius * 2, self.ball_radius * 2)
-        self.speed_x = 6
-        self.speed_y = -6
+        self.speed_x = 5
+        self.speed_y = -5
         self.speed = 15
         self.speed_max = 8
         self.game_over = 0
@@ -274,11 +360,18 @@ class ball:
             row_count += 1
 
         font = pygame.font.Font(None, 40)
-        text = 'Нажмите пробел чтобы начать'
+        start_text = 'Нажмите пробел чтобы начать'
+        text2 = 'назад'
         if not ball_running:
-            font = font.render(text, 1, pygame.Color('white'))
+            start_game = font.render(start_text, 1, pygame.Color('white'))
+            start_rect = start_game.get_rect()
+            back = font.render(text2, 1, pygame.Color('white'))
+            self.back_rect = back.get_rect()
+            self.back_rect.x = (screen_width // 2) - (self.back_rect.width // 2)
+            self.back_rect.top = screen_height / 2 + 20
             key = pygame.key.get_pressed()
-            screen.blit(font, (100, screen_height / 2 - 20))
+            screen.blit(start_game, ((screen_width // 2) - (start_rect.width // 2), screen_height / 2 - 20))
+            screen.blit(back, ((screen_width // 2) - (self.back_rect.width // 2), screen_height / 2 + 20))
             if key[pygame.K_RIGHT] and self.rect.right < screen_width - 5:
                 self.rect = self.rect.move(self.speed, 0)
             if key[pygame.K_LEFT] and self.rect.left > 5:
@@ -318,22 +411,28 @@ class ball:
             return self.game_over
 
 
-level_map_list = load_level('lvl1.txt', 'lvl3.txt', 'lvl2.txt')
+level_name = sorted(['lvl1.txt', 'lvl3.txt', 'lvl2.txt'])
+level_map_list = load_level(level_name)
 
-wall = wall()
-platform = platform()
+wall = Wall()
+platform = Platform()
 
-ball = ball(platform.pl_x + (platform.pl_width // 2), platform.pl_y - platform.pl_height)
+ball = Ball(platform.pl_x + (platform.pl_width // 2), platform.pl_y - platform.pl_height)
 
+# main loop
 while True:
-    image = load_image('fon.bmp')
-    image = pygame.transform.scale(image, (screen_width, screen_height))
+    bgImage = load_image('fon.bmp')
+    bgImage = pygame.transform.scale(bgImage, (screen_width, screen_height))
 
-    screen.blit(image, (0, 0))
-    platform.draw_platform()
-    ball.draw_ball()
+    screen.blit(bgImage, (0, 0))
 
-    start_screen()
+    ans = start_screen()
+
+    if ans == 'back':
+        start_screen()
+    elif str(ans).isdigit():
+        wall.map_number = ans - 1
+        print(wall.map_number)
 
     map_count = len(level_map_list) - 1
     wall.create_wall(level_map_list)
@@ -344,21 +443,29 @@ while True:
     ball_running = False
     run = True
     counter_font = pygame.font.Font(None, 30)
+
+    # game loop
     while run:
-        wall.draw_wall()
         text = f'Ваш счет: {score}'
         counter = counter_font.render(text, 1, pygame.Color('white'))
-        screen.blit(image, (0, 0))
+        screen.blit(bgImage, (0, 0))
+
         wall.draw_wall()
         platform.draw_platform()
         ball.draw_ball()
         screen.blit(counter, (40, screen_height - 25))
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                if not ball_running:
+            if not ball_running:
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                     ball_running = True
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if ball.back_rect.right >= event.pos[0] >= ball.back_rect.x:
+                        if ball.back_rect.bottom >= event.pos[1] >= ball.back_rect.y:
+                            run = False
+
         platform.update_platform()
         game_over = ball.update_ball()
 
@@ -371,19 +478,22 @@ while True:
 
         clock.tick(FPS)
         pygame.display.update()
-    try:
-        ans = end_screen()
-        if ans == 'exit':
+
+    if ball_running:
+        try:
+            ans = end_screen()
+            if ans == 'exit':
+                terminate()
+            elif ans == 'restart':
+                ball.rect.x = ball.x
+                ball.rect.y = ball.y
+                if ball.speed_y > 0:
+                    ball.speed_y *= -1
+                ball.game_over = 0
+                wall.map_number = 0
+                platform.platform = pygame.Rect(platform.pl_x + 2, platform.pl_y + 2, platform.pl_width - 2,
+                                                platform.pl_height - 2)
+                platform.shadow = pygame.Rect(platform.pl_x, platform.pl_y, platform.pl_width + 2,
+                                              platform.pl_height + 2)
+        except UnboundLocalError:
             terminate()
-        elif ans == 'restart':
-            ball.rect.x = ball.x
-            ball.rect.y = ball.y
-            if ball.speed_y > 0:
-                ball.speed_y *= -1
-            ball.game_over = 0
-            wall.map_number = 0
-            platform.platform = pygame.Rect(platform.pl_x + 2, platform.pl_y + 2, platform.pl_width - 2,
-                                            platform.pl_height - 2)
-            platform.shadow = pygame.Rect(platform.pl_x, platform.pl_y, platform.pl_width + 2, platform.pl_height + 2)
-    except UnboundLocalError:
-        terminate()
