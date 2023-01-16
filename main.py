@@ -57,6 +57,7 @@ def start_screen():
     screen.blit(bgImage, (0, 0))
     platform.draw_platform()
     ball.draw_ball()
+
     intro_text = ["Arcanoid Pygame", "Начать игру", "Выбор уровня", 'Выход']
     font = pygame.font.Font(None, 60)
     text_coord = 80
